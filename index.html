@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Livrezone - Noyau + deux cartes</title>
+    <!-- Dexie.js -->
+    <script src="https://unpkg.com/dexie@4.0.1/dist/dexie.js"></script>
+    <!-- Leaflet + Routing Machine -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            background-color: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: white;
+            padding: 12px;
+        }
+        
+        /* Wrapper pour remonter le noyau et ajouter l'info */
+        .noyau-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: -20px;  /* remonte légèrement le noyau */
+            margin-bottom: 10px;
+        }
+        
+        /* Noyau (cercle central) */
+        .app-container {
+            position: relative;
+            width: min(70vw, 70vh, 350px);
+            height: min(70vw, 70vh, 350px);
+            margin: 0 auto;
+            background: transparent;
+        }
+        
+        /* Info sous le noyau */
+        .closest-info {
+            text-align: center;
+            margin-top: 12px;
+            background: rgba(0,0,0,0.6);
+            padding: 6px 14px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #ffcd7e;
+        }
+        .closest-info span {
+            color: white;
+        }
+        
+        /* Conteneur des deux cartes (côte à côte) */
+        .dual-maps {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 12px;
+            width: 100%;
+            max-width: 700px;
+            margin: 15px auto 0 auto;
+        }
+        .map-card {
+            flex: 1;
+            background: #2c2e34;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            border: 1px solid #444;
+            height: 220px;
+        }
+        .map-card h4 {
+            margin: 0;
+            padding: 6px;
+            text-align: center;
+            font-size: 0.7rem;
+            background: #1f1f2a;
+            color: #ffcd7e;
+        }
+        .map-card .map {
+            width: 100%;
+            height: calc(100% - 28px);
+        }
+        
+        /* Éléments du noyau (inchangés) */
+        .btn-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40%;
+            max-width: 140px;
+            min-width: 100px;
+            aspect-ratio: 1/1;
+            background-color: #2c2e34;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            border-radius: 50%;
+            z-index: 10;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.1);
+            border: none;
+            transition: all 0.5s ease-out;
+        }
+        
+        .voyant {
+            position: absolute;
+            width: 3vmin;
+            height: 3vmin;
+            max-width: 18px;
+            max-height: 18px;
+            min-width: 10px;
+            min-height: 10px;
+            background-color: #555;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.5s ease-out, background-color 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .btn-circle {
+            position: absolute;
+            width: 9vmin;
+            height: 9vmin;
+            max-width: 48px;
+            max-height: 48px;
+            min-width: 36px;
+            min-height: 36px;
+            background-color: #333;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+            transition: all 0.5s ease-out, box-shadow 0.2s;
+            border: 2px solid rgba(255,255,255,0.4);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            z-index: 8;
+            touch-action: manipulation;
+        }
+        
+        /* Contrôles Rôle */
+        #role-switch {
+            position: fixed;
+            top: 8px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            z-index: 100;
+            padding: 0 12px;
+            flex-wrap: wrap;
+        }
+        .role-btn {
+            padding: 6px 14px;
+            border: none;
+            cursor: pointer;
+            border-radius: 40px;
+            font-weight: bold;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-size: 0.8rem;
+        }
+        .active-admin { background-color: #ff4444; color: white; }
+        .active-livreur { background-color: #28a745; color: white; }
+        .brand {
+            background: #1f1f2a;
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            font-size: 0.75rem;
+            box-shadow: inset 0 0 2px #ffffff30, 0 2px 6px black;
+            color: #ffcd7e;
+        }
+
+        /* Contrôles Admin (Unité & Spectre) */
+        .admin-controls {
+            position: fixed;
+            top: 55px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            z-index: 100;
+            pointer-events: none;
+        }
+        .admin-controls select {
+            pointer-events: auto;
+            background: #2c2e34;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 30px;
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 6px black;
+            outline: none;
+        }
+        .admin-controls label {
+            pointer-events: auto;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .admin-controls.hidden { display: none; }
+
+        .geo-message {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #ffcd7e;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            z-index: 200;
+            text-align: center;
+            white-space: nowrap;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
+        .geo-message button {
+            pointer-events: auto;
+            background: #28a745;
+            border: none;
+            border-radius: 30px;
+            padding: 3px 10px;
+            margin-left: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        /* Modales */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(18, 18, 24, 0.85);
+            backdrop-filter: blur(3px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #2c2e34;
+            padding: 20px 18px;
+            border-radius: 40px;
+            width: 85%;
+            max-width: 300px;
+            text-align: center;
+            box-shadow: 12px 12px 24px rgba(0,0,0,0.5), -8px -8px 18px rgba(70,75,85,0.3);
+        }
+        .modal-content p {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 0 0 16px;
+        }
+        .modal-content h2 {
+            font-size: 1.4rem;
+            margin: 12px 0;
+        }
+        .modal input {
+            width: 100%;
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 50px;
+            background: #24262c;
+            color: white;
+            box-shadow: inset 4px 4px 8px #181a1f, inset -3px -3px 6px #343840;
+        }
+        .modal button {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 50px;
+            font-weight: bold;
+            background: #343840;
+            color: white;
+            box-shadow: 5px 5px 10px #1f2127, -3px -3px 6px #40444f;
+            cursor: pointer;
+        }
+        .info-img {
+            width: 90px;
+            height: 90px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 30px;
+            margin: 0 auto;
+        }
+        
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 5px;
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.6rem;
+            color: #888;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .footer .reset-btn {
+            pointer-events: auto;
+            background: #4a4e5a;
+            border: none;
+            border-radius: 30px;
+            padding: 4px 14px;
+            color: white;
+            font-size: 0.7rem;
+            cursor: pointer;
+            box-shadow: 0 2px 5px black;
+        }
+        .footer .signature {
+            pointer-events: auto;
+            background: rgba(0,0,0,0.4);
+            padding: 2px 10px;
+            border-radius: 20px;
+        }
+        .reset-message {
+            position: fixed;
+            bottom: 55px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #ffcd7e;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.65rem;
+            z-index: 200;
+            white-space: nowrap;
+        }
+    </style>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4b6cb7">
+<link rel="apple-touch-icon" href="icon.png"></head>
+<body>
+
+<div id="role-switch">
+    <div class="brand select-none">📦 LIVREZONE</div>
+    <button id="mode-btn" class="role-btn active-livreur select-none" onclick="toggleRole()">Mode : LIVREUR</button>
+</div>
+
+<div id="admin-controls" class="admin-controls hidden">
+    <label>📏 Unité (m)
+        <select id="unit-select"></select>
+    </label>
+    <label>🌈 Spectre (m)
+        <select id="spectre-select"></select>
+    </label>
+</div>
+
+<!-- Noyau + info -->
+<div class="noyau-wrapper">
+    <div class="app-container" id="circle-container">
+        <div class="btn-center select-none"></div>
+    </div>
+    <div class="closest-info" id="closest-info">
+        🎯 <span id="closest-name">—</span> · 📍 <span id="closest-distance">—</span> m
+    </div>
+</div>
+
+<!-- Deux cartes côte à côte -->
+<div class="dual-maps">
+    <div class="map-card">
+        <h4>🗺️ Itinéraire détaillé</h4>
+        <div id="map" class="map"></div>
+    </div>
+    <div class="map-card">
+        <h4>🌍 Vue globale</h4>
+        <div id="mini-map" class="map"></div>
+    </div>
+</div>
+
+<div id="geo-message" class="geo-message" style="display: none;"></div>
+
+<div id="edit-modal" class="modal">
+    <div class="modal-content">
+        <p>✎ Édition</p>
+        <input type="text" id="m-name" placeholder="Nom">
+        <input type="text" id="m-coords" placeholder="Lat, Lon">
+        <input type="file" id="m-file" accept="image/*">
+        <button onclick="saveModal()">Valider</button>
+        <button onclick="closeModal('edit-modal')">Fermer</button>
+    </div>
+</div>
+
+<div id="info-modal" class="modal">
+    <div class="modal-content">
+        <div id="info-img" class="info-img"></div>
+        <h2 id="info-name">Nom</h2>
+        <button onclick="closeModal('info-modal')">Fermer</button>
+    </div>
+</div>
+
+<div class="footer select-none">
+    <button id="resetBtn" class="reset-btn">🗑️ Reset données</button>
+    <div class="signature">Livrezone · Laiche Brahim 2026</div>
+</div>
+
+<script>
+    // ----- DEXIE -----
+    const db = new Dexie('LivrezoneDB');
+    db.version(1).stores({ points: 'id, name, coords, image' });
+
+    let currentRole = 'livreur';
+    let activeBtn = null;
+    let currentPosition = null;
+    const NB_BUTTONS = 20;
+    const CENTER_X = 50, CENTER_Y = 50;
+    const RAYON_VOYANTS = 28;
+    const RAYON_BOUTONS = 40;
+
+    let unitDistance = 10;
+    let spectreDistance = 100;
+
+    // ----- Cartes Leaflet -----
+    let map, miniMap;
+    let routingControl = null;
+    let currentRouteDest = null;
+    let originMarker, destMarker;
+
+    // Élément d'info
+    const closestNameSpan = document.getElementById('closest-name');
+    const closestDistanceSpan = document.getElementById('closest-distance');
+
+    function updateClosestInfo() {
+        if (!currentPosition) {
+            closestNameSpan.innerText = '—';
+            closestDistanceSpan.innerText = '—';
+            return;
+        }
+        let closestBtn = null;
+        let closestDist = Infinity;
+        for (let btn of boutons) {
+            if (btn.dataset.coords) {
+                const [lat, lon] = btn.dataset.coords.split(',').map(Number);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    const dist = getDist(currentPosition.latitude, currentPosition.longitude, lat, lon);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closestBtn = btn;
+                    }
+                }
+            }
+        }
+        if (closestBtn) {
+            const name = closestBtn.dataset.name || "Point sans nom";
+            const distance = closestDist.toFixed(1);
+            closestNameSpan.innerText = name;
+            closestDistanceSpan.innerText = distance;
+        } else {
+            closestNameSpan.innerText = '—';
+            closestDistanceSpan.innerText = '—';
+        }
+    }
+
+    function initMaps() {
+        map = L.map('map').setView([48.8566, 2.3522], 12);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OSM & CartoDB',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+        
+        miniMap = L.map('mini-map').setView([48.8566, 2.3522], 10);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OSM & CartoDB',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(miniMap);
+    }
+
+    function updateMiniMap() {
+        if (!miniMap || !currentPosition) return;
+        let closestPoint = null;
+        let closestDist = Infinity;
+        for (let btn of boutons) {
+            if (btn.dataset.coords) {
+                const [lat, lon] = btn.dataset.coords.split(',').map(Number);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    const dist = getDist(currentPosition.latitude, currentPosition.longitude, lat, lon);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closestPoint = { lat, lng: lon };
+                    }
+                }
+            }
+        }
+        if (closestPoint) {
+            if (originMarker) miniMap.removeLayer(originMarker);
+            if (destMarker) miniMap.removeLayer(destMarker);
+            originMarker = L.marker([currentPosition.latitude, currentPosition.longitude], {
+                icon: L.divIcon({ html: '📍', iconSize: [20,20], className: '' })
+            }).addTo(miniMap);
+            destMarker = L.marker([closestPoint.lat, closestPoint.lng], {
+                icon: L.divIcon({ html: '🎯', iconSize: [20,20], className: '' })
+            }).addTo(miniMap);
+            const bounds = L.latLngBounds(
+                [currentPosition.latitude, currentPosition.longitude],
+                [closestPoint.lat, closestPoint.lng]
+            );
+            miniMap.fitBounds(bounds, { padding: [30,30] });
+        } else if (currentPosition) {
+            if (originMarker) miniMap.removeLayer(originMarker);
+            if (destMarker) miniMap.removeLayer(destMarker);
+            miniMap.setView([currentPosition.latitude, currentPosition.longitude], 12);
+        }
+    }
+
+    function updateMapRoute() {
+        if (!map || !currentPosition) return;
+        let closestPoint = null;
+        let closestDist = Infinity;
+        for (let btn of boutons) {
+            if (btn.dataset.coords) {
+                const [lat, lon] = btn.dataset.coords.split(',').map(Number);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    const dist = getDist(currentPosition.latitude, currentPosition.longitude, lat, lon);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closestPoint = { lat, lng: lon };
+                    }
+                }
+            }
+        }
+        if (closestPoint && (currentRouteDest !== closestPoint.lat+','+closestPoint.lng)) {
+            currentRouteDest = closestPoint.lat+','+closestPoint.lng;
+            if (routingControl) map.removeControl(routingControl);
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(currentPosition.latitude, currentPosition.longitude),
+                    L.latLng(closestPoint.lat, closestPoint.lng)
+                ],
+                routeWhileDragging: false,
+                showAlternatives: false,
+                lineOptions: { styles: [{ color: '#ff4444', weight: 5 }] },
+                router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+                show: false
+            }).addTo(map);
+        } else if (!closestPoint && routingControl) {
+            map.removeControl(routingControl);
+            routingControl = null;
+            currentRouteDest = null;
+        }
+        updateMiniMap();
+        updateClosestInfo();
+    }
+
+    let reorderRequestId = null;
+    function scheduleReorder() {
+        if (reorderRequestId) return;
+        reorderRequestId = requestAnimationFrame(() => {
+            if (currentPosition) reorderByDistance();
+            reorderRequestId = null;
+            updateMapRoute();
+        });
+    }
+
+    // ----- Gestion des points (Dexie) -----
+    async function loadAllPoints() {
+        const allPoints = await db.points.toArray();
+        for (let p of allPoints) {
+            const btn = boutons[p.id];
+            if (btn) {
+                btn.dataset.name = p.name || "";
+                btn.dataset.coords = p.coords || "";
+                btn.dataset.image = p.image || "";
+                if (btn.dataset.image) btn.style.backgroundImage = `url(${btn.dataset.image})`;
+                else btn.style.backgroundImage = 'none';
+                updateAriaLabels();
+            }
+        }
+        refreshAll();
+    }
+
+    async function savePointToDB(id, name, coords, image) {
+        await db.points.put({ id, name, coords, image });
+    }
+
+    async function deleteAllPoints() {
+        await db.points.clear();
+    }
+
+    async function getPoint(id) {
+        return await db.points.get(id);
+    }
+
+    // ----- Géolocalisation -----
+    let geoWatchId = null;
+    const geoMessageDiv = document.getElementById('geo-message');
+
+    function showGeoMessage(msg, showRetry = false) {
+        geoMessageDiv.innerHTML = msg + (showRetry ? ' <button id="geo-retry-btn">🔁 Réessayer</button>' : '');
+        geoMessageDiv.style.display = 'block';
+        if (showRetry) {
+            const retryBtn = document.getElementById('geo-retry-btn');
+            if (retryBtn) retryBtn.onclick = () => { initGeolocation(); geoMessageDiv.style.display = 'none'; };
+        }
+        setTimeout(() => {
+            if (geoMessageDiv.style.display === 'block' && !showRetry) {
+                geoMessageDiv.style.opacity = '0';
+                setTimeout(() => { if (geoMessageDiv.style.display === 'block') geoMessageDiv.style.display = 'none'; geoMessageDiv.style.opacity = ''; }, 1000);
+            }
+        }, 4000);
+    }
+
+    function hideGeoMessage() { geoMessageDiv.style.display = 'none'; }
+
+    function initGeolocation() {
+        if (geoWatchId !== null) navigator.geolocation.clearWatch(geoWatchId);
+        showGeoMessage('📍 Demande de position...', false);
+        geoWatchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                currentPosition = pos.coords;
+                hideGeoMessage();
+                scheduleReorder();
+                updateMapRoute();
+            },
+            (err) => {
+                let errorMsg = "";
+                switch(err.code) {
+                    case err.PERMISSION_DENIED: errorMsg = "❌ Accès refusé. Activez le GPS."; break;
+                    case err.POSITION_UNAVAILABLE: errorMsg = "📡 Position indisponible."; break;
+                    case err.TIMEOUT: errorMsg = "⏱️ Délai dépassé."; break;
+                    default: errorMsg = "⚠️ Erreur GPS.";
+                }
+                showGeoMessage(errorMsg, true);
+                if (geoWatchId) navigator.geolocation.clearWatch(geoWatchId);
+                geoWatchId = null;
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }
+
+    // ----- Couleurs dynamiques -----
+    function getDynamicColor(dist) {
+        if (dist > spectreDistance) return '#555';
+        if (dist <= unitDistance) return `hsl(120, 100%, 50%)`;
+        let t = (dist - unitDistance) / (spectreDistance - unitDistance);
+        let hue = 120 * (1 - t);
+        hue = Math.max(0, Math.min(120, hue));
+        return `hsl(${hue}, 100%, 50%)`;
+    }
+
+    // ----- Création des cercles (noyau) -----
+    const container = document.getElementById('circle-container');
+    const voyants = [];
+    const boutons = [];
+
+    function populateSelects() {
+        const unitSelect = document.getElementById('unit-select');
+        unitSelect.innerHTML = '';
+        for (let v = 10; v <= 500; v += 10) unitSelect.appendChild(new Option(v, v));
+        const spectreSelect = document.getElementById('spectre-select');
+        spectreSelect.innerHTML = '';
+        for (let v = 100; v <= 5000; v += 100) spectreSelect.appendChild(new Option(v, v));
+    }
+    populateSelects();
+
+    for (let i = 0; i < NB_BUTTONS; i++) {
+        const voyant = document.createElement('div');
+        voyant.className = 'voyant';
+        container.appendChild(voyant);
+        voyants.push(voyant);
+        
+        const btn = document.createElement('div');
+        btn.className = 'btn-circle select-none';
+        btn.dataset.id = i;
+        btn.setAttribute('aria-label', `Point ${i+1}`);
+        btn.style.backgroundImage = 'none';
+        btn.style.backgroundColor = '#333';
+        btn.voyant = voyant;
+        
+        let pressTimer;
+        const handlePointerDown = (e) => {
+            e.preventDefault();
+            pressTimer = setTimeout(() => { if (currentRole === 'admin') startCapture(btn); }, 800);
+        };
+        const handlePointerUp = (e) => {
+            e.preventDefault();
+            clearTimeout(pressTimer);
+            if (currentRole === 'admin') openEditModal(btn);
+            else openInfoModal(btn);
+        };
+        btn.addEventListener('pointerdown', handlePointerDown);
+        btn.addEventListener('pointerup', handlePointerUp);
+        btn.addEventListener('pointercancel', () => clearTimeout(pressTimer));
+        
+        container.appendChild(btn);
+        boutons.push(btn);
+    }
+
+    function updateAriaLabels() {
+        boutons.forEach((btn, idx) => {
+            const roleText = currentRole === 'admin' ? 'éditer' : 'voir';
+            btn.setAttribute('aria-label', `Point ${idx+1} – ${btn.dataset.name || 'sans nom'} – ${roleText}`);
+        });
+    }
+
+    function positionPair(btn, angleRad) {
+        const leftPct = CENTER_X + RAYON_BOUTONS * Math.cos(angleRad);
+        const topPct = CENTER_Y + RAYON_BOUTONS * Math.sin(angleRad);
+        btn.style.left = `${leftPct}%`;
+        btn.style.top = `${topPct}%`;
+        if (btn.voyant) {
+            const vLeft = CENTER_X + RAYON_VOYANTS * Math.cos(angleRad);
+            const vTop = CENTER_Y + RAYON_VOYANTS * Math.sin(angleRad);
+            btn.voyant.style.left = `${vLeft}%`;
+            btn.voyant.style.top = `${vTop}%`;
+        }
+    }
+
+    function reorderByDistance() {
+        if (!currentPosition) return;
+        const withDist = boutons.map(btn => {
+            let dist = Infinity;
+            if (btn.dataset.coords) {
+                const [lat, lon] = btn.dataset.coords.split(',').map(Number);
+                if (!isNaN(lat) && !isNaN(lon))
+                    dist = getDist(currentPosition.latitude, currentPosition.longitude, lat, lon);
+            }
+            return { btn, dist };
+        });
+        const sorted = [...withDist].sort((a,b) => a.dist - b.dist);
+        sorted.forEach((item, idx) => {
+            const angle = (idx / NB_BUTTONS) * 2 * Math.PI - Math.PI/2;
+            positionPair(item.btn, angle);
+        });
+        sorted.forEach((item) => {
+            const dist = item.dist;
+            if (dist === Infinity) item.btn.voyant.style.backgroundColor = '#555';
+            else item.btn.voyant.style.backgroundColor = getDynamicColor(dist);
+        });
+        const closestBtn = sorted[0]?.btn;
+        const centerDiv = document.querySelector('.btn-center');
+        if (closestBtn && closestBtn.dataset.image) {
+            centerDiv.style.backgroundImage = `url(${closestBtn.dataset.image})`;
+            centerDiv.style.backgroundColor = 'transparent';
+        } else {
+            centerDiv.style.backgroundImage = 'none';
+            centerDiv.style.backgroundColor = '#2c2e34';
+        }
+        updateClosestInfo();
+    }
+
+    function refreshAll() {
+        boutons.forEach(btn => {
+            if (btn.dataset.image && btn.dataset.image !== "") {
+                btn.style.backgroundImage = `url(${btn.dataset.image})`;
+                btn.style.backgroundColor = 'transparent';
+            } else {
+                btn.style.backgroundImage = 'none';
+                btn.style.backgroundColor = '#333';
+            }
+            updateAriaLabels();
+        });
+        if (currentPosition) reorderByDistance();
+        else {
+            boutons.forEach((btn, idx) => {
+                const angle = (idx / NB_BUTTONS) * 2 * Math.PI - Math.PI/2;
+                positionPair(btn, angle);
+                if (btn.voyant) btn.voyant.style.backgroundColor = '#555';
+            });
+        }
+    }
+
+    // ----- Reset -----
+    async function resetAllData() {
+        await deleteAllPoints();
+        boutons.forEach(btn => {
+            delete btn.dataset.name;
+            delete btn.dataset.coords;
+            delete btn.dataset.image;
+            btn.style.backgroundImage = 'none';
+            btn.style.backgroundColor = '#333';
+            if (btn.voyant) btn.voyant.style.backgroundColor = '#555';
+        });
+        const centerDiv = document.querySelector('.btn-center');
+        centerDiv.style.backgroundImage = 'none';
+        centerDiv.style.backgroundColor = '#2c2e34';
+        if (currentPosition) scheduleReorder();
+        showResetMessage('✓ Données effacées');
+        if (routingControl) map.removeControl(routingControl);
+        routingControl = null;
+        currentRouteDest = null;
+        if (originMarker) miniMap.removeLayer(originMarker);
+        if (destMarker) miniMap.removeLayer(destMarker);
+        updateClosestInfo();
+    }
+
+    function showResetMessage(msg) {
+        let div = document.querySelector('.reset-message');
+        if (!div) { div = document.createElement('div'); div.className = 'reset-message'; document.body.appendChild(div); }
+        div.textContent = msg;
+        div.style.opacity = '1';
+        clearTimeout(window.msgTimeout);
+        window.msgTimeout = setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 500); }, 2000);
+    }
+
+    let resetPending = false, resetTimeout = null;
+    document.getElementById('resetBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (resetPending) {
+            clearTimeout(resetTimeout);
+            resetAllData();
+            resetPending = false;
+            e.target.textContent = '🗑️ Reset données';
+            e.target.style.background = '#4a4e5a';
+        } else {
+            resetPending = true;
+            e.target.textContent = '⚠️ Confirmer ?';
+            e.target.style.background = '#c0392b';
+            resetTimeout = setTimeout(() => {
+                resetPending = false;
+                e.target.textContent = '🗑️ Reset données';
+                e.target.style.background = '#4a4e5a';
+                showResetMessage('Annulé');
+            }, 2500);
+            showResetMessage('Cliquez à nouveau pour confirmer');
+        }
+    });
+
+    function toggleRole() {
+        currentRole = (currentRole === 'livreur') ? 'admin' : 'livreur';
+        const btn = document.getElementById('mode-btn');
+        btn.innerText = "Mode : " + currentRole.toUpperCase();
+        btn.className = "role-btn select-none " + (currentRole === 'admin' ? 'active-admin' : 'active-livreur');
+        const adminControls = document.getElementById('admin-controls');
+        if (currentRole === 'admin') adminControls.classList.remove('hidden');
+        else adminControls.classList.add('hidden');
+        updateAriaLabels();
+    }
+
+    function openEditModal(btn) {
+        activeBtn = btn;
+        document.getElementById('m-coords').value = btn.dataset.coords || "";
+        document.getElementById('m-name').value = btn.dataset.name || "";
+        document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function openInfoModal(btn) {
+        activeBtn = btn;
+        document.getElementById('info-name').innerText = btn.dataset.name || "Point sans nom";
+        const imgDiv = document.getElementById('info-img');
+        imgDiv.style.backgroundImage = btn.dataset.image ? `url(${btn.dataset.image})` : 'none';
+        document.getElementById('info-modal').style.display = 'flex';
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    async function saveModal() {
+        if (!activeBtn) return;
+        const id = parseInt(activeBtn.dataset.id);
+        const name = document.getElementById('m-name').value;
+        const coords = document.getElementById('m-coords').value;
+        const file = document.getElementById('m-file').files[0];
+        
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const img = new Image();
+                img.onload = async () => {
+                    // Amélioration qualité : canvas plus grand (150x150) et qualité JPEG à 0.9
+                    const canvas = document.createElement('canvas');
+                    const targetSize = 200; // augmentation pour meilleure qualité
+                    canvas.width = targetSize;
+                    canvas.height = targetSize;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, targetSize, targetSize);
+                    const imageData = canvas.toDataURL('image/jpeg', 0.9);
+                    activeBtn.dataset.name = name;
+                    activeBtn.dataset.coords = coords;
+                    activeBtn.dataset.image = imageData;
+                    await savePointToDB(id, name, coords, imageData);
+                    refreshAll();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            activeBtn.dataset.name = name;
+            activeBtn.dataset.coords = coords;
+            const existing = await getPoint(id);
+            const imageData = existing ? existing.image : (activeBtn.dataset.image || "");
+            activeBtn.dataset.image = imageData;
+            await savePointToDB(id, name, coords, imageData);
+            refreshAll();
+        }
+        closeModal('edit-modal');
+    }
+
+    function startCapture(btn) {
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                if (navigator.vibrate) navigator.vibrate(200);
+                openEditModal(btn);
+                document.getElementById('m-coords').value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+            },
+            err => showGeoMessage("❌ Impossible d'obtenir la position", true)
+        );
+    }
+
+    function getDist(lat1, lon1, lat2, lon2) {
+        const R = 6371000;
+        const dLat = (lat2-lat1)*Math.PI/180;
+        const dLon = (lon2-lon1)*Math.PI/180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function loadAdminSettings() {
+        const savedUnit = localStorage.getItem('livrezone_unit');
+        const savedSpectre = localStorage.getItem('livrezone_spectre');
+        if (savedUnit) unitDistance = parseInt(savedUnit, 10);
+        if (savedSpectre) spectreDistance = parseInt(savedSpectre, 10);
+        document.getElementById('unit-select').value = unitDistance;
+        document.getElementById('spectre-select').value = spectreDistance;
+    }
+    function saveAdminSettings() {
+        localStorage.setItem('livrezone_unit', unitDistance);
+        localStorage.setItem('livrezone_spectre', spectreDistance);
+    }
+    function onAdminSettingChange() {
+        unitDistance = parseInt(document.getElementById('unit-select').value, 10);
+        spectreDistance = parseInt(document.getElementById('spectre-select').value, 10);
+        saveAdminSettings();
+        if (currentPosition) scheduleReorder();
+    }
+    document.getElementById('unit-select').addEventListener('change', onAdminSettingChange);
+    document.getElementById('spectre-select').addEventListener('change', onAdminSettingChange);
+
+    // Démarrage
+    loadAdminSettings();
+    initMaps();
+    loadAllPoints().then(() => { initGeolocation(); });
+    if (currentRole === 'admin') document.getElementById('admin-controls').classList.remove('hidden');
+    updateAriaLabels();
+</script>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
+</body>
+</html>
