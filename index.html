@@ -25,6 +25,104 @@
             align-items: center;
             justify-content: flex-start;
             min-height: 100vh;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        /* ========== ÉCRAN DE VERROUILLAGE ========== */
+        .lock-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1a1a1a;
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(2px);
+            transition: opacity 0.3s ease;
+        }
+        .lock-screen.hidden {
+            display: none;
+        }
+        .lock-container {
+            background: #2c2e34;
+            border-radius: 48px;
+            padding: 24px 20px 30px;
+            width: 90%;
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5);
+            border: 1px solid #555;
+        }
+        .lock-container h2 {
+            margin: 0 0 8px;
+            font-size: 1.5rem;
+            color: #ffcd7e;
+        }
+        .lock-container p {
+            font-size: 0.8rem;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+        .code-display {
+            background: #1f1f2a;
+            border-radius: 50px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 2rem;
+            letter-spacing: 8px;
+            font-family: monospace;
+            font-weight: bold;
+            color: #ffcd7e;
+            text-align: center;
+            border: 1px solid #555;
+        }
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .numpad-btn {
+            background: #3a3d46;
+            border: none;
+            border-radius: 60px;
+            padding: 16px 0;
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: 0.1s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .numpad-btn:active {
+            transform: scale(0.96);
+            background: #2c2e34;
+        }
+        .numpad-btn.clear {
+            background: #aa2e2e;
+        }
+        .numpad-btn.validate {
+            background: #2c7a4d;
+        }
+        .lock-error {
+            color: #ff8888;
+            font-size: 0.8rem;
+            margin-top: 12px;
+            min-height: 30px;
+        }
+
+        /* Contenu principal (masqué tant que code non entré) */
+        .main-content {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .main-content.locked {
+            display: none;
         }
 
         /* Barres de rôle et admin */
@@ -46,6 +144,30 @@
         .role-btn.active-admin { background-color: #ff4444; color: white; }
         .role-btn.active-livreur { background-color: #28a745; color: white; }
         .brand { background: #1f1f2a; color: #ffcd7e; }
+
+        /* Bouton ampoule (mode jour) */
+        .theme-toggle-btn {
+            background: #2c2e34;
+            border: none;
+            border-radius: 40px;
+            font-size: 1.2rem;
+            padding: 5px 10px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .theme-toggle-btn:hover {
+            transform: scale(0.96);
+            background: #4a4e5a;
+        }
+        body.day-mode .theme-toggle-btn {
+            background: #f0e68c;
+            color: #b45f1b;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
 
         .admin-controls {
             display: flex;
@@ -124,6 +246,33 @@
             font-size: 0.65rem;
             padding: 0 4px;
             color: #ccc;
+        }
+        /* Slider spectre (visible pour tous) */
+        .spectre-slider-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 8px;
+            background: rgba(0,0,0,0.4);
+            padding: 6px 12px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+        }
+        .spectre-slider-container label {
+            white-space: nowrap;
+        }
+        .spectre-slider-container input {
+            flex: 1;
+            min-width: 100px;
+            cursor: pointer;
+        }
+        .spectre-slider-container span {
+            background: #2c2e34;
+            padding: 2px 8px;
+            border-radius: 30px;
+            min-width: 55px;
+            text-align: center;
         }
 
         /* Barre des tournées (boutons carrés) */
@@ -453,6 +602,189 @@
             border-radius: 8px;
             font-size: 0.6rem;
         }
+
+        /* ========== MODE JOUR ========== */
+        body.day-mode {
+            background: #f4f7fb;
+            color: #1e2a3a;
+        }
+        body.day-mode .lock-screen {
+            background: #f4f7fb;
+        }
+        body.day-mode .lock-container {
+            background: white;
+            border: 1px solid #e2e8f0;
+        }
+        body.day-mode .lock-container h2 {
+            color: #d45a1e;
+        }
+        body.day-mode .lock-container p {
+            color: #475569;
+        }
+        body.day-mode .code-display {
+            background: #f1f5f9;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+        body.day-mode .numpad-btn {
+            background: #e2e8f0;
+            color: #0f172a;
+            box-shadow: none;
+        }
+        body.day-mode .numpad-btn.clear {
+            background: #fecaca;
+            color: #991b1b;
+        }
+        body.day-mode .numpad-btn.validate {
+            background: #bbf7d0;
+            color: #166534;
+        }
+        body.day-mode .role-btn,
+        body.day-mode .brand {
+            background: #ffffff;
+            color: #1e2a3a;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            border: 1px solid #dce4ec;
+        }
+        body.day-mode .brand {
+            background: #eef2f7;
+            color: #d45a1e;
+        }
+        body.day-mode .role-btn.active-admin { background-color: #e63946; color: white; border: none; }
+        body.day-mode .role-btn.active-livreur { background-color: #2a9d8f; color: white; border: none; }
+        body.day-mode .admin-controls {
+            background: rgba(230, 240, 250, 0.8);
+        }
+        body.day-mode .admin-controls select,
+        body.day-mode .admin-controls button {
+            background: white;
+            color: #1e2a3a;
+            border: 1px solid #cbd5e1;
+        }
+        body.day-mode .list-wrapper {
+            background: rgba(255,255,240,0.5);
+        }
+        body.day-mode .closest-info {
+            background: rgba(255, 255, 245, 0.9);
+            color: #0f3b2c;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        body.day-mode .spectre-bar {
+            background: #dadfe5;
+        }
+        body.day-mode .spectre-gradient {
+            background: linear-gradient(to right, #cbd5e1, #2ecc71);
+        }
+        body.day-mode .spectre-marker {
+            background: #2c3e50;
+            box-shadow: 0 0 4px #000;
+        }
+        body.day-mode .spectre-labels {
+            color: #2c3e50;
+        }
+        body.day-mode .spectre-slider-container {
+            background: rgba(230,240,250,0.9);
+        }
+        body.day-mode .spectre-slider-container span {
+            background: white;
+            color: #1e2a3a;
+        }
+        body.day-mode .btn-circle {
+            background: white !important;
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        body.day-mode .btn-circle .point-name {
+            color: #0f172a !important;
+            font-weight: 700;
+        }
+        body.day-mode .btn-circle .point-dist {
+            background: #eef2ff;
+            color: #1e3a8a !important;
+            font-weight: 700;
+        }
+        body.day-mode .btn-circle.delivered {
+            background: #d1fae5 !important;
+            border-color: #10b981;
+        }
+        body.day-mode .btn-circle.delivered .point-name,
+        body.day-mode .btn-circle.delivered .point-dist {
+            color: #065f46 !important;
+        }
+        body.day-mode .btn-circle.is-active {
+            border: 3px solid #f97316;
+            box-shadow: 0 0 12px rgba(249,115,22,0.4);
+        }
+        body.day-mode .btn-circle.pulse-red {
+            border: 3px solid #dc2626;
+            box-shadow: 0 0 12px rgba(220,38,38,0.5);
+        }
+        body.day-mode .tournee-btn {
+            background: white;
+            color: #d45a1e;
+            border: 1px solid #cbd5e1;
+        }
+        body.day-mode .tournee-btn:hover {
+            background: #f1f5f9;
+        }
+        body.day-mode .map-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+        }
+        body.day-mode .map-card h4 {
+            background: #f8fafc;
+            color: #d45a1e;
+        }
+        body.day-mode .footer {
+            color: #475569;
+        }
+        body.day-mode .footer .reset-btn {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        body.day-mode .toast-notification {
+            background: white;
+            color: #1e293b;
+            border: 1px solid #facc15;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        body.day-mode .modal-content {
+            background: white;
+            border: 1px solid #e2e8f0;
+        }
+        body.day-mode .modal-content p,
+        body.day-mode .modal-content h2 {
+            color: #0f172a;
+        }
+        body.day-mode .modal input,
+        body.day-mode .modal button {
+            background: #f1f5f9;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
+        }
+        body.day-mode .modal button:first-of-type {
+            background: #2c7a4d;
+            color: white;
+            border: none;
+        }
+        body.day-mode .tournee-item {
+            background: #f8fafc;
+            color: #0f172a;
+        }
+        body.day-mode .tournee-name {
+            color: #0f172a;
+        }
+        body.day-mode .history-item {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+        body.day-mode .geo-message {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+        body.day-mode #info-distance {
+            color: #1e2a3a;
+        }
     </style>
 
 <link rel="manifest" href="manifest.json">
@@ -460,110 +792,197 @@
 <link rel="apple-touch-icon" href="icon.png"></head>
 <body>
 
-<div id="role-switch">
-    <div class="brand">📦 LIVREZONE</div>
-    <button id="mode-btn" class="role-btn active-livreur">Mode : LIVREUR</button>
-</div>
-
-<div id="admin-controls" class="admin-controls hidden">
-    <label>📏 Unité (m) <select id="unit-select"></select></label>
-    <label>🌈 Spectre (m) <select id="spectre-select"></select></label>
-    <button id="history-btn">📜 Historique</button>
-    <div class="excel-group">
-        <button id="excel-main-btn">📊 Excel</button>
-    </div>
-</div>
-
-<div class="list-wrapper">
-    <div class="closest-info" id="closest-info">
-        🎯 Plus proche : <span id="closest-name">—</span> · 📍 <span id="closest-distance">—</span> <span id="dist-unit">m</span>
-    </div>
-    <div class="spectre-container">
-        <div class="spectre-bar">
-            <div class="spectre-gradient"></div>
-            <div class="spectre-marker" id="spectre-marker"></div>
+<!-- ÉCRAN DE VERROUILLAGE -->
+<div id="lockScreen" class="lock-screen">
+    <div class="lock-container">
+        <h2>🔒 LIVREZONE</h2>
+        <p>Entrez le code à 6 chiffres</p>
+        <div class="code-display" id="codeDisplay">______</div>
+        <div class="numpad" id="numpad">
+            <!-- Généré en JS -->
         </div>
-        <div class="spectre-labels">
-            <span>0 m</span>
-            <span id="unit-label">10 m</span>
-            <span id="spectre-label">100 m</span>
-            <span>+∞</span>
+        <div class="lock-error" id="lockError"></div>
+    </div>
+</div>
+
+<!-- CONTENU PRINCIPAL (initialement masqué) -->
+<div id="mainContent" class="main-content locked">
+    <div id="role-switch">
+        <button id="themeLightBtn" class="theme-toggle-btn" title="Mode jour / nuit">💡</button>
+        <div class="brand">📦 LIVREZONE</div>
+        <button id="mode-btn" class="role-btn active-livreur">Mode : LIVREUR</button>
+    </div>
+
+    <div id="admin-controls" class="admin-controls hidden">
+        <label>📏 Unité (m) <select id="unit-select"></select></label>
+        <button id="history-btn">📜 Historique</button>
+        <div class="excel-group">
+            <button id="excel-main-btn">📊 Excel</button>
         </div>
     </div>
-    <div id="tournees-bar" class="tournees-bar"></div>
-    <div id="list-container" class="list-container"></div>
-</div>
 
-<div class="dual-maps">
-    <div class="map-card" id="map-card1">
-        <h4>🗺️ Itinéraire détaillé</h4>
-        <div id="map" class="map"></div>
-        <div id="main-loader" class="map-loader" style="display: none;"><div class="spinner"></div></div>
-    </div>
-    <div class="map-card" id="map-card2">
-        <h4>🚗 Vue conduite</h4>
-        <div id="mini-map" class="map"></div>
-        <div id="mini-loader" class="map-loader" style="display: none;"><div class="spinner"></div></div>
-    </div>
-</div>
-
-<!-- Modales -->
-<div id="livraison-modal" class="modal">
-    <div class="modal-content">
-        <p>📦 Livraison</p>
-        <p>Confirmer la livraison chez <strong id="livraison-client-name">le client</strong> ?</p>
-        <button id="confirm-livraison">✅ Oui, livrer</button>
-        <button onclick="closeModal('livraison-modal')">❌ Annuler</button>
-    </div>
-</div>
-<div id="history-modal" class="modal">
-    <div class="modal-content">
-        <p>📋 Historique</p>
-        <div id="history-list" class="history-list"></div>
-        <button onclick="closeModal('history-modal')">Fermer</button>
-    </div>
-</div>
-<div id="excel-modal" class="modal">
-    <div class="modal-content">
-        <p>📁 Gestion des tournées</p>
-        <div class="excel-buttons">
-            <button id="import-tournee">📥 Importer Excel</button>
-            <button id="export-current">📤 Exporter cette tournée</button>
+    <div class="list-wrapper">
+        <div class="closest-info" id="closest-info">
+            🎯 Plus proche : <span id="closest-name">—</span> · 📍 <span id="closest-distance">—</span> <span id="dist-unit">m</span>
         </div>
-        <div style="text-align: left; margin-top: 10px;">Tournées enregistrées :</div>
-        <div id="tournees-list" class="tournees-list"></div>
-        <button onclick="closeModal('excel-modal')">Fermer</button>
+        <div class="spectre-container">
+            <div class="spectre-bar">
+                <div class="spectre-gradient"></div>
+                <div class="spectre-marker" id="spectre-marker"></div>
+            </div>
+            <div class="spectre-labels">
+                <span>0 m</span>
+                <span id="unit-label">10 m</span>
+                <span id="spectre-label">1 km</span>
+                <span>+∞</span>
+            </div>
+            <div class="spectre-slider-container">
+                <label>🌈 Spectre max :</label>
+                <input type="range" id="spectre-slider" min="1" max="500" step="1" value="1">
+                <span id="spectre-value">1 km</span>
+            </div>
+        </div>
+        <div id="tournees-bar" class="tournees-bar"></div>
+        <div id="list-container" class="list-container"></div>
     </div>
-</div>
-<input type="file" id="excel-import-input" accept=".csv, .xlsx, .xls" style="display: none;" />
-<div id="geo-message" class="geo-message" style="display: none;"></div>
-<div id="edit-modal" class="modal">
-    <div class="modal-content">
-        <p>✎ Éditer le point</p>
-        <input type="text" id="m-name" placeholder="Nom">
-        <input type="text" id="m-coords" placeholder="Coordonnées (lat,lon ou Plus Code)">
-        <input type="file" id="m-file" accept="image/*">
-        <button onclick="saveModal()">💾 Enregistrer</button>
-        <button onclick="closeModal('edit-modal')">Annuler</button>
-    </div>
-</div>
-<div id="info-modal" class="modal">
-    <div class="modal-content">
-        <div id="info-img" class="info-img"></div>
-        <h2 id="info-name">Nom</h2>
-        <p id="info-distance">📍 Distance: --</p>
-        <button id="info-livrer-btn" style="background: #2c7a4d; display: none;">📦 Livrer ce point</button>
-        <button onclick="closeModal('info-modal')">Fermer</button>
-    </div>
-</div>
 
-<div class="footer">
-    <button id="resetBtn" class="reset-btn">🗑️ Reset toutes données</button>
-    <div class="signature">Livrezone · Laiche Brahim 2026</div>
+    <div class="dual-maps">
+        <div class="map-card" id="map-card1">
+            <h4>🗺️ Itinéraire détaillé</h4>
+            <div id="map" class="map"></div>
+            <div id="main-loader" class="map-loader" style="display: none;"><div class="spinner"></div></div>
+        </div>
+        <div class="map-card" id="map-card2">
+            <h4>🚗 Vue conduite</h4>
+            <div id="mini-map" class="map"></div>
+            <div id="mini-loader" class="map-loader" style="display: none;"><div class="spinner"></div></div>
+        </div>
+    </div>
+
+    <!-- Modales -->
+    <div id="livraison-modal" class="modal">
+        <div class="modal-content">
+            <p>📦 Livraison</p>
+            <p>Confirmer la livraison chez <strong id="livraison-client-name">le client</strong> ?</p>
+            <button id="confirm-livraison">✅ Oui, livrer</button>
+            <button onclick="closeModal('livraison-modal')">❌ Annuler</button>
+        </div>
+    </div>
+    <div id="history-modal" class="modal">
+        <div class="modal-content">
+            <p>📋 Historique</p>
+            <div id="history-list" class="history-list"></div>
+            <button onclick="closeModal('history-modal')">Fermer</button>
+        </div>
+    </div>
+    <div id="excel-modal" class="modal">
+        <div class="modal-content">
+            <p>📁 Gestion des tournées</p>
+            <div class="excel-buttons">
+                <button id="import-tournee">📥 Importer Excel</button>
+                <button id="export-current">📤 Exporter cette tournée</button>
+            </div>
+            <div style="text-align: left; margin-top: 10px;">Tournées enregistrées :</div>
+            <div id="tournees-list" class="tournees-list"></div>
+            <button onclick="closeModal('excel-modal')">Fermer</button>
+        </div>
+    </div>
+    <input type="file" id="excel-import-input" accept=".csv, .xlsx, .xls" style="display: none;" />
+    <div id="geo-message" class="geo-message" style="display: none;"></div>
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <p>✎ Éditer le point</p>
+            <input type="text" id="m-name" placeholder="Nom">
+            <input type="text" id="m-coords" placeholder="Coordonnées (lat,lon ou Plus Code)">
+            <input type="file" id="m-file" accept="image/*">
+            <button onclick="saveModal()">💾 Enregistrer</button>
+            <button onclick="closeModal('edit-modal')">Annuler</button>
+        </div>
+    </div>
+    <div id="info-modal" class="modal">
+        <div class="modal-content">
+            <div id="info-img" class="info-img"></div>
+            <h2 id="info-name">Nom</h2>
+            <p id="info-distance">📍 Distance: --</p>
+            <button id="info-livrer-btn" style="background: #2c7a4d; display: none;">📦 Livrer ce point</button>
+            <button onclick="closeModal('info-modal')">Fermer</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <button id="resetBtn" class="reset-btn">🗑️ Reset toutes données</button>
+        <div class="signature">Livrezone · Laiche Brahim 2026</div>
+    </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    // ========== GESTION DU VERROUILLAGE ==========
+    let enteredCode = '';
+    const correctCode = '000000';
+    const lockScreen = document.getElementById('lockScreen');
+    const mainContent = document.getElementById('mainContent');
+    const codeDisplay = document.getElementById('codeDisplay');
+    const lockError = document.getElementById('lockError');
+    
+    function updateCodeDisplay() {
+        const filled = enteredCode.padEnd(6, '_');
+        codeDisplay.innerText = filled.split('').join(' ');
+    }
+    
+    function onNumpadClick(value) {
+        lockError.innerText = '';
+        if (value === 'C') {
+            enteredCode = '';
+            updateCodeDisplay();
+        } else if (value === 'OK') {
+            if (enteredCode === correctCode) {
+                // Déverrouillage
+                lockScreen.classList.add('hidden');
+                mainContent.classList.remove('locked');
+                // On démarre l'application après déverrouillage
+                startApp();
+            } else {
+                lockError.innerText = '❌ Code incorrect. Réessayez.';
+                enteredCode = '';
+                updateCodeDisplay();
+            }
+        } else if (value >= '0' && value <= '9') {
+            if (enteredCode.length < 6) {
+                enteredCode += value;
+                updateCodeDisplay();
+            }
+        }
+    }
+    
+    function buildNumpad() {
+        const numpadDiv = document.getElementById('numpad');
+        const buttons = [
+            '1','2','3',
+            '4','5','6',
+            '7','8','9',
+            'C','0','OK'
+        ];
+        numpadDiv.innerHTML = '';
+        buttons.forEach(btn => {
+            const button = document.createElement('button');
+            button.className = 'numpad-btn';
+            if (btn === 'C') button.classList.add('clear');
+            if (btn === 'OK') button.classList.add('validate');
+            button.innerText = btn;
+            button.addEventListener('click', () => onNumpadClick(btn));
+            numpadDiv.appendChild(button);
+        });
+    }
+    
+    buildNumpad();
+    updateCodeDisplay();
+    
+    // Le reste de l'application sera lancé uniquement après déverrouillage
+    let appStarted = false;
+    function startApp() {
+        if (appStarted) return;
+        appStarted = true;
+        
         // ========== SERVICE WORKER ==========
         (function() {
             const swCode = `const CACHE_NAME='livrezone-v1';const urlsToCache=['/','/index.html','https://unpkg.com/dexie@4.0.1/dist/dexie.js','https://unpkg.com/open-location-code@1.0.3/dist/openlocationcode.min.js','https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js','https://unpkg.com/leaflet@1.9.4/dist/leaflet.css','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js','https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css','https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js'];self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(urlsToCache))));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k))))));`;
@@ -582,6 +1001,26 @@
             updateOfflineOverlay();
         })();
 
+        // ========== MODE JOUR / NUIT ==========
+        const themeBtn = document.getElementById('themeLightBtn');
+        const bodyEl = document.body;
+        const loadTheme = () => {
+            const saved = localStorage.getItem('livrezone_theme');
+            if (saved === 'day') bodyEl.classList.add('day-mode');
+            else bodyEl.classList.remove('day-mode');
+        };
+        const toggleTheme = () => {
+            if (bodyEl.classList.contains('day-mode')) {
+                bodyEl.classList.remove('day-mode');
+                localStorage.setItem('livrezone_theme', 'night');
+            } else {
+                bodyEl.classList.add('day-mode');
+                localStorage.setItem('livrezone_theme', 'day');
+            }
+        };
+        if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+        loadTheme();
+
         // ========== DB ==========
         const db = new Dexie('LivrezoneDB');
         db.version(4).stores({
@@ -593,7 +1032,8 @@
         let currentRole = 'livreur';
         let currentPosition = null;
         const NB_BUTTONS = 20;
-        let unitDistance = 10, spectreDistance = 100;
+        let unitDistance = 10;
+        let spectreDistance = 1000;
         
         const mainLoader = document.getElementById('main-loader');
         const miniLoader = document.getElementById('mini-loader');
@@ -609,7 +1049,9 @@
         const excelModal = document.getElementById('excel-modal');
         const tourneesListDiv = document.getElementById('tournees-list');
         
-        // ========== NOTIFICATION TOAST ==========
+        const spectreSlider = document.getElementById('spectre-slider');
+        const spectreValueSpan = document.getElementById('spectre-value');
+        
         let toastTimeout = null;
         function showToast(message, duration = 3000) {
             let existing = document.querySelector('.toast-notification');
@@ -625,7 +1067,6 @@
             }, duration);
         }
         
-        // ========== UTILITAIRES ==========
         function formatDistance(meters) {
             if (meters < 1000) { distUnitSpan.innerText = 'm'; return Math.round(meters); }
             else { distUnitSpan.innerText = 'km'; return (meters / 1000).toFixed(1); }
@@ -687,7 +1128,6 @@
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
         
-        // ========== CRÉATION DES CARTES ==========
         const boutons = [];
         for (let i = 0; i < NB_BUTTONS; i++) {
             const btn = document.createElement('div');
@@ -751,7 +1191,11 @@
             }
             spectreMarker.style.left = `${Math.min(100, Math.max(0, percent))}%`;
             unitLabel.innerText = `${unitDistance} m`;
-            spectreLabel.innerText = `${spectreDistance} m`;
+            if (spectreDistance >= 1000) {
+                spectreLabel.innerText = (spectreDistance / 1000).toFixed(1) + ' km';
+            } else {
+                spectreLabel.innerText = spectreDistance + ' m';
+            }
         }
         
         function updatePulseOnNearest(nearestBtn, distance) {
@@ -772,7 +1216,6 @@
         }
         function stopAutoScroll() { if (autoScrollInterval) clearInterval(autoScrollInterval); autoScrollInterval = null; }
         
-        // ========== RÉORDONNANCEMENT ET CALCUL DES DISTANCES ==========
         function reorderByDistance() {
             if (!currentPosition) {
                 boutons.forEach(btn => {
@@ -785,7 +1228,6 @@
                 return;
             }
             
-            // Calcul des distances pour tous les points
             const withDist = boutons.map(btn => {
                 const coords = parseCoordinates(btn.dataset.coords);
                 return { btn, dist: coords ? getDist(currentPosition.latitude, currentPosition.longitude, coords.lat, coords.lng) : Infinity };
@@ -804,7 +1246,6 @@
                 const distSpan = btn.querySelector('.point-dist');
                 const nameSpan = btn.querySelector('.point-name');
                 
-                // Affichage de la distance
                 if (distM !== Infinity && !btn.classList.contains('delivered')) {
                     let disp = distM < 1000 ? `${Math.round(distM)} m` : `${(distM/1000).toFixed(1)} km`;
                     distSpan.innerText = disp;
@@ -814,11 +1255,9 @@
                     distSpan.innerText = '?';
                 }
                 
-                // Nom
                 if (btn.dataset.name && btn.dataset.name !== "") nameSpan.innerText = btn.dataset.name;
                 else nameSpan.innerText = `Point ${parseInt(btn.dataset.id)+1}`;
                 
-                // Photo
                 if (btn.dataset.image && btn.dataset.image !== "") {
                     btn.photo.style.backgroundImage = `url(${btn.dataset.image})`;
                     btn.photo.style.backgroundColor = 'transparent';
@@ -827,13 +1266,12 @@
                     btn.photo.style.backgroundColor = '#555';
                 }
                 
-                // LED : le point actif (le plus proche non livré) a une LED ROUGE
                 const isActive = (!btn.classList.contains('delivered') && idx === delivered.length);
                 if (btn.led) {
                     if (btn.classList.contains('delivered')) {
-                        btn.led.style.backgroundColor = '#39ff14';  // vert pour livré
+                        btn.led.style.backgroundColor = '#39ff14';
                     } else if (isActive) {
-                        btn.led.style.backgroundColor = '#ff0000';  // ROUGE pour le plus proche
+                        btn.led.style.backgroundColor = '#ff0000';
                     } else if (distM !== Infinity) {
                         btn.led.style.backgroundColor = getLedColor(distM);
                     } else {
@@ -841,15 +1279,12 @@
                     }
                 }
                 
-                // Fond
                 if (btn.classList.contains('delivered')) btn.style.backgroundColor = '#1e4a2e';
                 else btn.style.backgroundColor = '#2c2e34';
                 
-                // Mise en évidence (bordure)
                 if (isActive) btn.classList.add('is-active');
                 else btn.classList.remove('is-active');
                 
-                // Clignotement si <10m (sans affecter la LED)
                 if (!btn.classList.contains('delivered') && distM !== Infinity && distM < 10) {
                     if (!btn.classList.contains('pulse-red')) btn.classList.add('pulse-red');
                 } else {
@@ -857,11 +1292,9 @@
                 }
             });
             
-            // Réorganisation DOM
             sorted.forEach(item => listContainer.appendChild(item.btn));
             adjustListHeight();
             
-            // Mise à jour de l'info "plus proche"
             const first = notDelivered[0];
             if (first && first.dist !== Infinity) {
                 closestNameSpan.innerText = first.btn.dataset.name || "Point";
@@ -872,7 +1305,6 @@
             }
         }
         
-        // ========== GESTION POINTS ==========
         async function markAsDelivered(btn) {
             const id = parseInt(btn.dataset.id);
             btn.dataset.delivered = "true";
@@ -954,7 +1386,6 @@
             else adjustListHeight();
         }
         
-        // ========== GESTION DES TOURNÉES ==========
         async function saveTournee(name, points) {
             await db.tournees.add({ name, pointsData: JSON.stringify(points) });
             await refreshTourneesUI();
@@ -986,7 +1417,6 @@
         
         async function refreshTourneesUI() {
             const all = await db.tournees.toArray();
-            // Liste dans la modale
             tourneesListDiv.innerHTML = '';
             for (let t of all) {
                 const div = document.createElement('div');
@@ -1019,7 +1449,6 @@
                 div.appendChild(delBtn);
                 tourneesListDiv.appendChild(div);
             }
-            // Barre des tournées (boutons carrés)
             tourneesBar.innerHTML = '';
             for (let t of all) {
                 const btn = document.createElement('button');
@@ -1030,7 +1459,6 @@
             }
         }
         
-        // Export / Import Excel
         function exportCurrentTournee() {
             const data = [['Nom','Coordonnées']];
             for (let i=0; i<NB_BUTTONS; i++) data.push([boutons[i].dataset.name||'', boutons[i].dataset.coords||'']);
@@ -1060,7 +1488,6 @@
             reader.readAsArrayBuffer(file);
         }
         
-        // ========== GÉOLOCALISATION ==========
         let geoWatchId = null;
         function showGeoMessage(msg, showRetry=false) {
             const div = document.getElementById('geo-message');
@@ -1094,7 +1521,6 @@
             );
         }
         
-        // ========== CARTES ==========
         let map, drivingMap, routingControl = null, currentRouteDest = null, drivingPolyline = null, destMarker = null, currentPosMarker = null, lastDrivingUpdate = 0;
         
         function initMaps() {
@@ -1184,7 +1610,6 @@
             });
         }
         
-        // ========== MODALES ÉDITION / INFO ==========
         let activeBtn = null;
         function openEditModal(btn) {
             activeBtn = btn;
@@ -1324,7 +1749,6 @@
             closeModal('edit-modal');
         }
         
-        // ========== LIVRAISON ==========
         document.getElementById('confirm-livraison').addEventListener('click', async () => {
             const btn = window._pendingDeliveryBtn;
             if (btn) {
@@ -1339,7 +1763,6 @@
             }
         });
         
-        // ========== ADMIN & RESET ==========
         async function resetAllData() {
             if (!confirm("⚠️ Effacer toutes les données (points, livraisons, tournées) ?")) return;
             await deleteAllPoints();
@@ -1380,13 +1803,23 @@
         
         function loadAdminSettings() {
             const u = localStorage.getItem('livrezone_unit');
-            const s = localStorage.getItem('livrezone_spectre');
             if (u) unitDistance = parseInt(u);
-            if (s) spectreDistance = parseInt(s);
+            const s = localStorage.getItem('livrezone_spectre');
+            if (s) {
+                let val = parseInt(s);
+                if (val < 1000) val = 1000;
+                if (val > 500000) val = 500000;
+                spectreDistance = val;
+            } else {
+                spectreDistance = 1000;
+            }
             document.getElementById('unit-select').value = unitDistance;
-            document.getElementById('spectre-select').value = spectreDistance;
+            const sliderKm = spectreDistance / 1000;
+            spectreSlider.value = sliderKm;
+            spectreValueSpan.innerText = sliderKm + ' km';
             unitLabel.innerText = `${unitDistance} m`;
-            spectreLabel.innerText = `${spectreDistance} m`;
+            if (spectreDistance >= 1000) spectreLabel.innerText = (spectreDistance / 1000).toFixed(1) + ' km';
+            else spectreLabel.innerText = spectreDistance + ' m';
         }
         
         function saveAdminSettings() {
@@ -1394,22 +1827,34 @@
             localStorage.setItem('livrezone_spectre', spectreDistance);
         }
         
-        function onAdminChange() {
+        function onUnitChange() {
             unitDistance = parseInt(document.getElementById('unit-select').value);
-            spectreDistance = parseInt(document.getElementById('spectre-select').value);
             saveAdminSettings();
             unitLabel.innerText = `${unitDistance} m`;
-            spectreLabel.innerText = `${spectreDistance} m`;
             if (currentPosition) scheduleReorder();
         }
         
-        // ========== INITIALISATION ==========
+        function onSpectreChange() {
+            let kmVal = parseFloat(spectreSlider.value);
+            if (isNaN(kmVal)) kmVal = 1;
+            kmVal = Math.min(500, Math.max(1, kmVal));
+            spectreDistance = Math.round(kmVal * 1000);
+            spectreValueSpan.innerText = kmVal + ' km';
+            saveAdminSettings();
+            if (spectreDistance >= 1000) spectreLabel.innerText = (spectreDistance / 1000).toFixed(1) + ' km';
+            else spectreLabel.innerText = spectreDistance + ' m';
+            if (currentPosition) scheduleReorder();
+        }
+        
         const unitSel = document.getElementById('unit-select');
-        const spectreSel = document.getElementById('spectre-select');
         for (let v = 10; v <= 500; v += 10) unitSel.appendChild(new Option(v, v));
-        for (let v = 100; v <= 5000; v += 100) spectreSel.appendChild(new Option(v, v));
-        unitSel.addEventListener('change', onAdminChange);
-        spectreSel.addEventListener('change', onAdminChange);
+        unitSel.addEventListener('change', onUnitChange);
+        spectreSlider.addEventListener('input', (e) => {
+            let km = parseFloat(e.target.value);
+            spectreValueSpan.innerText = km + ' km';
+        });
+        spectreSlider.addEventListener('change', onSpectreChange);
+        
         document.getElementById('history-btn').addEventListener('click', () => { loadHistory(); document.getElementById('history-modal').style.display = 'flex'; });
         document.getElementById('excel-main-btn').addEventListener('click', () => { refreshTourneesUI(); excelModal.style.display = 'flex'; });
         document.getElementById('import-tournee').addEventListener('click', () => document.getElementById('excel-import-input').click());
@@ -1433,7 +1878,7 @@
         window.closeModal = closeModal;
         window.addEventListener('resize', () => setTimeout(adjustListHeight, 100));
         window.addEventListener('beforeunload', () => stopAutoScroll());
-    });
+    }
 </script>
 
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
